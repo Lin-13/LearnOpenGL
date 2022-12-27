@@ -1,0 +1,10 @@
+#version 330 core
+in vec3 VColor;
+in vec2 VTexCoord;
+out vec4 FragColor;
+uniform float alpha = 0.2;
+uniform sampler2D ourTexture1;
+uniform sampler2D ourTexture2;
+void main(){
+    FragColor = mix(texture(ourTexture1, VTexCoord), texture(ourTexture2, VTexCoord), alpha) * vec4(VColor, 1.0f);
+}
