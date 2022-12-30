@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -72,12 +72,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\Code\OpenGL\glad\include;D:\Code\OpenGL\glfw\include;D:\Code\OpenGL\stb;D:\Code\OpenGL\glm;$(IncludePath)</IncludePath>
+    <IncludePath>D:\Code\OpenGL\glad\include;D:\Code\OpenGL\glfw\include;D:\Code\OpenGL\stb;D:\Code\OpenGL\glm;D:\Code\OpenGL\eigen-3.4.0;$(IncludePath)</IncludePath>
     <LibraryPath>D:\Code\OpenGL\glfw\lib-vc2019;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>D:\Code\OpenGL\glad\include;D:\Code\OpenGL\glfw\include;D:\Code\OpenGL\stb;D:\Code\OpenGL\glm;$(IncludePath)</IncludePath>
+    <IncludePath>D:\Code\OpenGL\glad\include;D:\Code\OpenGL\glfw\include;D:\Code\OpenGL\stb;D:\Code\OpenGL\glm;D:\Code\OpenGL\eigen-3.4.0;$(IncludePath)</IncludePath>
     <LibraryPath>D:\Code\OpenGL\glfw\lib-vc2019;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -85,6 +85,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>false</VcpkgEnabled>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -148,6 +151,7 @@
     <ClCompile Include="learn_context.cpp" />
     <ClCompile Include="D:\Code\OpenGL\glad\src\glad.c" />
     <ClCompile Include="hellotriangle.cpp" />
+    <ClCompile Include="learn_glm.cpp" />
     <ClCompile Include="learn_shader.cpp" />
     <ClCompile Include="logger.hpp" />
     <ClCompile Include="main.cpp" />

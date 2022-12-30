@@ -5,31 +5,55 @@
 #include<GLFW/glfw3.h>
 #endif
 #include"shader.h"
+
 #include<glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include<Eigen/Core>
+#include<Eigen/Geometry>
+
 #include<iostream>
 #include<fstream>
 #include<cmath>
 #include<Windows.h>
-#define logger(str) (std::cout<<"["<<str<<"]: ")
+//#define logger(str) (std::cout<<"["<<str<<"]: ")
 GLuint load_texture(const char* img_path);
 
 //Data
-static float vertices[] = {
--0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,
- 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
- 0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,
--0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f
+static float vertices[] = {//pos,color,tex
+-0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,//左下
+ 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,//右下
+ 0.5f,  0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f,//右上
+-0.5f,  0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,//左上，Front
+-0.5f, -0.5f,-0.5f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,
+ 0.5f, -0.5f,-0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+ 0.5f,  0.5f,-0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+-0.5f,  0.5f,-0.5f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f //Back
 };
 static unsigned int indices[] = {
 	0, 1, 2,
-	1, 2, 3
+	0, 2, 3
 };
 static unsigned int indices2[] = {
 	0, 1, 2,
-	0, 2, 3
+	0, 2, 3,//前
+	4, 5, 6,
+	4, 6, 7,//后
+	0, 1, 5,
+	0, 5, 4,//下
+	3, 2, 6,
+	3, 6, 7,//上
+	0, 3, 7,
+	0, 7, 4,//左
+	1, 2, 6,
+	1, 6, 5
+
 };
 void buffersize_callback(GLFWwindow* window, int width, int height);
+void cursor_callback(GLFWwindow* window, double xpos, double ypos);
+
 void InputProcess(GLFWwindow* window, GLuint program);
+void view(GLFWwindow* window, GLint program);
 #define MAIN
 #ifdef MAIN
 int main() {
@@ -91,19 +115,30 @@ int learn_context() {
 	shader.setInt("ourTexture2", 1);
 	//交互
 	glfwSetWindowSizeCallback(window, buffersize_callback);
+	glfwSetScrollCallback(window, NULL);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetMouseButtonCallback(window, NULL);
+	glfwSetCursorPosCallback(window, cursor_callback);
+	GLint transformLoc = glGetUniformLocation(program, "transform");
+
+	
 	while (glfwWindowShouldClose(window) == GL_FALSE) {
 		InputProcess(window, program);
+		//Transform Matrix
+		//glm::mat4 trans = glm::mat4(1.0f);
+		//trans = glm::rotate(trans, 3.14 / 2, glm::vec3(0.0, 0.0, 1.0));
+		//trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+		
+		// Or trans.setIdentity();
+		glEnable(GL_DEPTH_TEST);
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-		double green = glfwGetTime();
-		green = sin(green) / 2 + 0.5;
+		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 		glUseProgram(program);
-		//glUniform4f(ourcolorLocation, 0, green, 0, 0);
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		view(window, program);
 
 		
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO2);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -119,6 +154,7 @@ void buffersize_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
 void InputProcess(GLFWwindow* window,GLuint program) {
+	static float angle = 0;
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
@@ -149,4 +185,80 @@ void InputProcess(GLFWwindow* window,GLuint program) {
 		glUniform1f(location, alpha);
 		logger("Info") << "alpha = " << alpha << std::endl;
 	}
+	static int last_q = GLFW_RELEASE;
+	if(glfwGetKey(window,GLFW_KEY_Q) == GLFW_RELEASE){
+		if (last_q == GLFW_PRESS) {
+			uint32_t value;
+			value = glfwGetInputMode(window, GLFW_CURSOR);
+			if (value == GLFW_CURSOR_NORMAL) {
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+				logger("Info") << "Input:" << "GLFW_CURSOR_DISABLED" << std::endl;
+			}
+			if (value == GLFW_CURSOR_DISABLED) {
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+				logger("Info") << "Input:" << "GLFW_CURSOR_NORMAL" << std::endl;
+			}
+		}
+		
+	}
+	last_q = glfwGetKey(window, GLFW_KEY_Q);
+	//if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+	//	angle = angle + 0.001f;
+	//	GLint transformLoc = glGetUniformLocation(program, "transform");
+	//	Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
+	//	Eigen::AngleAxisf t(angle, Eigen::Vector3f(0.0, 0.0, 1.0));
+	//	trans.block(0, 0, 3, 3) = t.matrix();
+	//	const float* ptr = trans.data();
+	//	logger("Info") << "angle:" << angle << std::endl;
+	//	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, ptr);
+	//}
+	//
+	//if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+	//	angle = angle - 0.001f;
+	//	GLint transformLoc = glGetUniformLocation(program, "transform");
+	//	//Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
+	//	Eigen::AngleAxisf t(angle, Eigen::Vector3f(0.0, 0.0, 1.0));
+	//	Eigen::Isometry3f trans=Eigen::Isometry3f::Identity();
+	//	trans.rotate(t);
+	//	trans.pretranslate(Eigen::Vector3f(0.1f, 0.1f, 0.1f));
+	//	//trans.scale(2.0);
+	//	logger("Info") << "angle:" << angle << std::endl;
+	//	logger("Info") << "transform:\n" << trans.matrix() << std::endl;
+	//	const float* ptr = trans.matrix().data();
+	//	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, ptr);
+	//}
+}
+void view(GLFWwindow* window,GLint program){
+	static bool logEnable = TRUE;
+	int width, height;
+	glfwGetWindowSize(window,&width,&height);
+	glm::mat4 model(1.0f);//模型空间到世界空间
+	model = glm::rotate(model, (float)glfwGetTime()*glm::radians(-45.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+	glm::mat4 view(1.0f);//世界空间到摄像头空间
+	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+	
+	glm::mat4 proj(1.0f);//透视矩阵
+	proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
+	GLint modelLoc = glGetUniformLocation(program, "model");
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+	GLint viewLoc = glGetUniformLocation(program, "view");
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+	GLint projLoc = glGetUniformLocation(program, "projection");
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
+	if (logEnable) {
+		Eigen::Map<Eigen::Matrix<float, 4, 4, Eigen::ColMajor>> m(glm::value_ptr(model));
+		logger("Info") << "model\n" << m << std::endl;
+		Eigen::Map<Eigen::Matrix<float, 4, 4, Eigen::ColMajor>> v(glm::value_ptr(view));
+		logger("Info") << "view \n" << v << std::endl;
+		Eigen::Map<Eigen::Matrix<float, 4, 4, Eigen::ColMajor>> p(glm::value_ptr(proj));
+		logger("Info") << "proj \n" << p << std::endl;
+	}
+	logEnable = 0;
+}
+void cursor_callback(GLFWwindow* window, double xpos, double ypos) {
+	static double last_x, last_y;
+	if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
+		return;
+	}
+	logger("Info") << " x pos " << xpos << " , y pos " << ypos << std::endl;
 }
