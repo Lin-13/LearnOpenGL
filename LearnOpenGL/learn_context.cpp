@@ -6,12 +6,15 @@
 #endif
 #include"shader.h"
 
+#include<Windows.h>
 #include<glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include<Eigen/Core>
 #include<Eigen/Geometry>
-
+//std
+#include<random>
+#include<vector>
 #include<iostream>
 #include<fstream>
 #include<cmath>
@@ -49,6 +52,21 @@ static unsigned int indices2[] = {
 	1, 6, 5
 
 };
+
+//glm::vec3 cubePositions[] = {
+std::vector<glm::vec3> cubePositions ={
+  glm::vec3(0.0f,  0.0f,  0.0f),
+  glm::vec3(2.0f,  5.0f, -15.0f),
+  glm::vec3(-1.5f, -2.2f, -2.5f),
+  glm::vec3(-3.8f, -2.0f, -12.3f),
+  glm::vec3(2.4f, -0.4f, -3.5f),
+  glm::vec3(-1.7f,  3.0f, -7.5f),
+  glm::vec3(1.3f, -2.0f, -2.5f),
+  glm::vec3(1.5f,  2.0f, -2.5f),
+  glm::vec3(1.5f,  0.2f, -1.5f),
+  glm::vec3(-1.3f,  1.0f, -1.5f)
+};
+void rollcallback(GLFWwindow* window, double xroll, double yroll);
 void buffersize_callback(GLFWwindow* window, int width, int height);
 void cursor_callback(GLFWwindow* window, double xpos, double ypos);
 
@@ -64,7 +82,8 @@ int learn_context() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	GLFWwindow* window = glfwCreateWindow(800, 600, "Hello Shader", NULL, NULL);
+	int width = 800, height = 600;
+	GLFWwindow* window = glfwCreateWindow(width, height, "Hello Shader", NULL, NULL);
 	if (!window) {
 		logger("Error") << "Fail" << std::endl;
 		glfwTerminate();
@@ -115,10 +134,12 @@ int learn_context() {
 	shader.setInt("ourTexture2", 1);
 	//交互
 	glfwSetWindowSizeCallback(window, buffersize_callback);
-	glfwSetScrollCallback(window, NULL);
+	
+	glfwSetScrollCallback(window,rollcallback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetMouseButtonCallback(window, NULL);
 	glfwSetCursorPosCallback(window, cursor_callback);
+	glfwSetCursorPos(window, width / 2.0, height / 2.0);
 	GLint transformLoc = glGetUniformLocation(program, "transform");
 
 	
@@ -128,7 +149,13 @@ int learn_context() {
 		//glm::mat4 trans = glm::mat4(1.0f);
 		//trans = glm::rotate(trans, 3.14 / 2, glm::vec3(0.0, 0.0, 1.0));
 		//trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+		//<-model
+		//static auto positer = cubePositions.begin();
 		
+		
+
+		
+		//model->
 		// Or trans.setIdentity();
 		glEnable(GL_DEPTH_TEST);
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -138,16 +165,28 @@ int learn_context() {
 
 		
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO2);
-		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+		int i = 0;
+		for (const auto& iter : cubePositions) {
+			glm::mat4 model(1.0f);//模型空间到世界空间
+			model = glm::translate(model, iter);
+			float angle = 20.0f * i;
+			i++;
+			model = glm::rotate(model, glm::radians(angle) + (float)glfwGetTime()*1.0f, glm::vec3(1.0f, 0.3f, 0.5f));
+			GLint modelLoc = glGetUniformLocation(program, "model");
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+		}
+		
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
 	glDeleteBuffers(1, &EBO2);
 	glDeleteProgram(program);
 	glfwTerminate();
+	char in;
+	std::cin >> in;
 	return 0;
 }
 void buffersize_callback(GLFWwindow* window, int width, int height) {
@@ -229,25 +268,28 @@ void InputProcess(GLFWwindow* window,GLuint program) {
 	//}
 }
 void view(GLFWwindow* window,GLint program){
-	static bool logEnable = TRUE;
 	int width, height;
-	glfwGetWindowSize(window,&width,&height);
-	glm::mat4 model(1.0f);//模型空间到世界空间
-	model = glm::rotate(model, (float)glfwGetTime()*glm::radians(-45.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-	glm::mat4 view(1.0f);//世界空间到摄像头空间
-	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+	static bool logEnable = TRUE;
+	static auto positer = cubePositions.begin();
 	
+	
+	glm::mat4 view(1.0f);//世界空间到摄像头空间
+	//view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+	glm::vec3 cameraPos(0.0f, 0.0f, 3.0f);
+	glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
+	glm::vec3 cameraUp(0.0f,  1.0f, 0.0f);
+	view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
 	glm::mat4 proj(1.0f);//透视矩阵
+	glfwGetWindowSize(window, &width, &height);
 	proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
-	GLint modelLoc = glGetUniformLocation(program, "model");
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+	
 	GLint viewLoc = glGetUniformLocation(program, "view");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 	GLint projLoc = glGetUniformLocation(program, "projection");
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
 	if (logEnable) {
-		Eigen::Map<Eigen::Matrix<float, 4, 4, Eigen::ColMajor>> m(glm::value_ptr(model));
-		logger("Info") << "model\n" << m << std::endl;
 		Eigen::Map<Eigen::Matrix<float, 4, 4, Eigen::ColMajor>> v(glm::value_ptr(view));
 		logger("Info") << "view \n" << v << std::endl;
 		Eigen::Map<Eigen::Matrix<float, 4, 4, Eigen::ColMajor>> p(glm::value_ptr(proj));
@@ -261,4 +303,11 @@ void cursor_callback(GLFWwindow* window, double xpos, double ypos) {
 		return;
 	}
 	logger("Info") << " x pos " << xpos << " , y pos " << ypos << std::endl;
+}
+void rollcallback(GLFWwindow* window, double xroll, double yroll) {
+	static double last_x, last_y;
+	if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
+		return;
+	}
+	logger("Info") << " x roll " << xroll << " , y roll " << yroll << std::endl;
 }
