@@ -148,6 +148,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="camera.cpp" />
     <ClCompile Include="learn_context.cpp" />
     <ClCompile Include="D:\Code\OpenGL\glad\src\glad.c" />
     <ClCompile Include="hellotriangle.cpp" />
@@ -159,6 +160,7 @@
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="camera.hpp" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="test_data.hpp" />
     <ClInclude Include="utils.hpp" />

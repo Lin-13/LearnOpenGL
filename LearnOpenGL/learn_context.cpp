@@ -66,10 +66,16 @@ std::vector<glm::vec3> cubePositions ={
   glm::vec3(1.5f,  0.2f, -1.5f),
   glm::vec3(-1.3f,  1.0f, -1.5f)
 };
+glm::vec3 cameraPos(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp(0.0f, 1.0f, 0.0f);
+float fov = 45.0;
+double pitch = 0, yaw = -90;
+//Callback
 void rollcallback(GLFWwindow* window, double xroll, double yroll);
 void buffersize_callback(GLFWwindow* window, int width, int height);
 void cursor_callback(GLFWwindow* window, double xpos, double ypos);
-
+void mouse_callback(GLFWwindow* window, int button,int action,int mods);
 void InputProcess(GLFWwindow* window, GLuint program);
 void view(GLFWwindow* window, GLint program);
 #define MAIN
@@ -89,6 +95,8 @@ int learn_context() {
 		glfwTerminate();
 		return 0;
 	}
+	//Camera
+
 	glfwMakeContextCurrent(window);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		logger("Error") << "Cou not init glad" << std::endl;
@@ -136,27 +144,16 @@ int learn_context() {
 	glfwSetWindowSizeCallback(window, buffersize_callback);
 	
 	glfwSetScrollCallback(window,rollcallback);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	glfwSetMouseButtonCallback(window, NULL);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	glfwSetMouseButtonCallback(window, mouse_callback);
 	glfwSetCursorPosCallback(window, cursor_callback);
 	glfwSetCursorPos(window, width / 2.0, height / 2.0);
+	GLFWmousebuttonfun;
 	GLint transformLoc = glGetUniformLocation(program, "transform");
 
 	
 	while (glfwWindowShouldClose(window) == GL_FALSE) {
 		InputProcess(window, program);
-		//Transform Matrix
-		//glm::mat4 trans = glm::mat4(1.0f);
-		//trans = glm::rotate(trans, 3.14 / 2, glm::vec3(0.0, 0.0, 1.0));
-		//trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-		//<-model
-		//static auto positer = cubePositions.begin();
-		
-		
-
-		
-		//model->
-		// Or trans.setIdentity();
 		glEnable(GL_DEPTH_TEST);
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -241,31 +238,20 @@ void InputProcess(GLFWwindow* window,GLuint program) {
 		
 	}
 	last_q = glfwGetKey(window, GLFW_KEY_Q);
-	//if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-	//	angle = angle + 0.001f;
-	//	GLint transformLoc = glGetUniformLocation(program, "transform");
-	//	Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
-	//	Eigen::AngleAxisf t(angle, Eigen::Vector3f(0.0, 0.0, 1.0));
-	//	trans.block(0, 0, 3, 3) = t.matrix();
-	//	const float* ptr = trans.data();
-	//	logger("Info") << "angle:" << angle << std::endl;
-	//	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, ptr);
-	//}
-	//
-	//if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-	//	angle = angle - 0.001f;
-	//	GLint transformLoc = glGetUniformLocation(program, "transform");
-	//	//Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
-	//	Eigen::AngleAxisf t(angle, Eigen::Vector3f(0.0, 0.0, 1.0));
-	//	Eigen::Isometry3f trans=Eigen::Isometry3f::Identity();
-	//	trans.rotate(t);
-	//	trans.pretranslate(Eigen::Vector3f(0.1f, 0.1f, 0.1f));
-	//	//trans.scale(2.0);
-	//	logger("Info") << "angle:" << angle << std::endl;
-	//	logger("Info") << "transform:\n" << trans.matrix() << std::endl;
-	//	const float* ptr = trans.matrix().data();
-	//	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, ptr);
-	//}
+	if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED) {
+		float cameraSpeed = 0.05f;
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+			cameraPos += cameraSpeed * cameraFront;
+		}if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+			cameraPos -= cameraSpeed * cameraFront;
+		}
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+			cameraPos -= cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
+		}
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+			cameraPos += cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
+		}
+	}
 }
 void view(GLFWwindow* window,GLint program){
 	int width, height;
@@ -276,14 +262,12 @@ void view(GLFWwindow* window,GLint program){
 	
 	glm::mat4 view(1.0f);//世界空间到摄像头空间
 	//view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-	glm::vec3 cameraPos(0.0f, 0.0f, 3.0f);
-	glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
-	glm::vec3 cameraUp(0.0f,  1.0f, 0.0f);
+	
 	view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 	glm::mat4 proj(1.0f);//透视矩阵
 	glfwGetWindowSize(window, &width, &height);
-	proj = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
+	proj = glm::perspective(glm::radians(fov), (float)width / (float)height, 0.1f, 100.0f);
 	
 	GLint viewLoc = glGetUniformLocation(program, "view");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -298,16 +282,76 @@ void view(GLFWwindow* window,GLint program){
 	logEnable = 0;
 }
 void cursor_callback(GLFWwindow* window, double xpos, double ypos) {
-	static double last_x, last_y;
+	static double lastX, lastY;
+	static int first = 1;
 	if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
+		first = 1;
 		return;
 	}
-	logger("Info") << " x pos " << xpos << " , y pos " << ypos << std::endl;
+	
+	if (first) {
+		int width, height;
+		glfwGetWindowSize(window, &width, &height);
+		glfwSetCursorPos(window, width / 2.0, height / 2.0);
+		//logger("Info") << " x pos " << xpos << " , y pos " << ypos << std::endl;
+		lastX = width / 2.0;
+		lastY = height / 2.0;
+		first = 0;
+		//logger("Info") << "first" << std::endl;
+		//logger("Info") << "Front: " << cameraFront.x << " " << cameraFront.y << " " << cameraFront.z << std::endl;
+		
+		return;
+	}
+	//logger("Info") << " x pos " << xpos << " , y pos " << ypos << std::endl;
+	double xoffset = xpos - lastX;
+	double yoffset = ypos - lastY;
+	lastX = xpos;
+	lastY = ypos;
+	//logger("Info") << "xoffset: " << xoffset << " yoffset: " << yoffset << std::endl;
+	//logger("Info") << "lastX: " << lastX << " lastX: " << lastY << std::endl;
+	double sens = 0.05;
+	xoffset *= sens;
+	yoffset *= sens;
+	pitch -= yoffset;
+	yaw += xoffset;
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+	glm::vec3 front;
+	front.x = glm::cos(glm::radians(pitch)) * glm::cos(glm::radians(yaw));
+	front.y = glm::sin(glm::radians(pitch));
+	front.z = glm::cos(glm::radians(pitch)) * glm::sin(glm::radians(yaw));
+	cameraFront = glm::normalize(front);
+	//logger("Info") << "xoffset: " << xoffset << " yoffset: " << yoffset << std::endl;
+	//logger("Info") << "pitch: " << pitch << " yaw: " << yaw << std::endl;
+	//logger("Info") << "Front: " << front.x << " " << front.y << " " << front.z << std::endl;
+	return;
 }
 void rollcallback(GLFWwindow* window, double xroll, double yroll) {
 	static double last_x, last_y;
 	if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
 		return;
 	}
-	logger("Info") << " x roll " << xroll << " , y roll " << yroll << std::endl;
+	fov += yroll;
+	//logger("Info") << " x roll " << xroll << " , y roll " << yroll << std::endl;
+	//logger("Info") << "Fov:" << fov << std::endl;
+}
+void mouse_callback(GLFWwindow* window, int button, int action, int mods) {
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action==GLFW_PRESS) {
+		//logger("Info") << "Left Button:" << " action " << action << " mods " << mods << std::endl;
+		if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL) {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			//logger("Info") << "Input:" << "GLFW_CURSOR_DISABLED" << std::endl;
+			return;
+		}
+		if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED) {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			//logger("Info") << "Input:" << "GLFW_CURSOR_NORMAL" << std::endl;
+			return;
+		}
+	}
+	if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+	}
+	//logger("Info") << "Button: "<<button << " action: " << action << " mods: " << mods << std::endl;
 }
