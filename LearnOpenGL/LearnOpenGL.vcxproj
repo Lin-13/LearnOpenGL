@@ -170,6 +170,7 @@
     <Text Include="vertexshader.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\README.md" />
     <None Include="vshader_with_texture.txt" />
     <None Include="fshader_with_texture.txt" />
   </ItemGroup>
