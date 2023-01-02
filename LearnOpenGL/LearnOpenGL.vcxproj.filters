@@ -42,7 +42,7 @@
     <ClCompile Include="learn_glm.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="camera.cpp">
+    <ClCompile Include="viewer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

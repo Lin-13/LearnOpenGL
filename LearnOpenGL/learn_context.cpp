@@ -5,6 +5,7 @@
 #include<GLFW/glfw3.h>
 #endif
 #include"shader.h"
+#include"camera.hpp"
 
 #include<Windows.h>
 #include<glm/glm.hpp>
@@ -96,7 +97,10 @@ int learn_context() {
 		return 0;
 	}
 	//Camera
-
+	GLViewer::Camera camera(glm::vec3(1.0f, 1.0f, 1.0f));
+	GLViewer::Camera c2(glm::vec3(1.0f, 1.0f, 1.0f), 45.0f, 45.0f);
+	GLViewer::Camera c(c2);
+	c.getFrontVec();
 	glfwMakeContextCurrent(window);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		logger("Error") << "Cou not init glad" << std::endl;
