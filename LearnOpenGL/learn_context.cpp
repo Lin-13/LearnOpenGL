@@ -70,16 +70,17 @@ std::vector<glm::vec3> cubePositions ={
 glm::vec3 cameraPos(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp(0.0f, 1.0f, 0.0f);
-float fov = 45.0;
-double pitch = 0, yaw = -90;
+static float fov = 45.0;
+static double pitch = 0, yaw = -90;
 //Callback
 void rollcallback(GLFWwindow* window, double xroll, double yroll);
 void buffersize_callback(GLFWwindow* window, int width, int height);
 void cursor_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_callback(GLFWwindow* window, int button,int action,int mods);
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void InputProcess(GLFWwindow* window, GLuint program);
 void view(GLFWwindow* window, GLint program);
-#define MAIN
+//#define MAIN
 #ifdef MAIN
 int main() {
 #else
@@ -152,12 +153,19 @@ int learn_context() {
 	glfwSetMouseButtonCallback(window, mouse_callback);
 	glfwSetCursorPosCallback(window, cursor_callback);
 	glfwSetCursorPos(window, width / 2.0, height / 2.0);
-	GLFWmousebuttonfun;
+	glfwSetKeyCallback(window, keyCallback);
 	GLint transformLoc = glGetUniformLocation(program, "transform");
 
-	
+	double last_time = glfwGetTime();
+	int loop_cnt = 0;
 	while (glfwWindowShouldClose(window) == GL_FALSE) {
-		InputProcess(window, program);
+		loop_cnt++;
+		if (loop_cnt == 100) {
+			std::cout << "fps:" << 100 / (glfwGetTime() - last_time) << "\r";
+			last_time = glfwGetTime();
+			loop_cnt = 0;
+		}
+	//InputProcess(window, program);
 		glEnable(GL_DEPTH_TEST);
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -186,15 +194,45 @@ int learn_context() {
 	glDeleteBuffers(1, &EBO2);
 	glDeleteProgram(program);
 	glfwTerminate();
-	char in;
-	std::cin >> in;
+	//char in;
+	//std::cin >> in;
 	return 0;
 }
 void buffersize_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 }
+void keyCallback(GLFWwindow* window,int key,int scancode,int action,int mods) {
+	//logger("Info") << "key: " << key << " scancode:" << scancode << " action: " << action << " mods:" << mods << std::endl;
+	static double last_time = glfwGetTime();
+	static int cnt = 0;
+	cnt++;
+	if (cnt == 10) {
+		std::cout << "\r\t\t\t\tKey Freq:" << 10 / (glfwGetTime() - last_time) << "\r";
+		last_time = glfwGetTime();
+		cnt = 0;
+	}
+	const float cameraSpeed = 0.05f;
+	if (action == 1 || action == 2) {
+		if (key == GLFW_KEY_ESCAPE) {
+			glfwSetWindowShouldClose(window, true);
+		}
+		if (key == GLFW_KEY_W) {
+			cameraPos += cameraSpeed * cameraFront;
+		}
+		if (key == GLFW_KEY_S) {
+			cameraPos -= cameraSpeed * cameraFront;
+		}
+		if (key == GLFW_KEY_A) {
+			cameraPos -= cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
+		}
+		if (key == GLFW_KEY_D) {
+			cameraPos += cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
+		}
+	}
+}
 void InputProcess(GLFWwindow* window,GLuint program) {
 	static float angle = 0;
+	
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 		glfwSetWindowShouldClose(window, true);
 	}
@@ -272,6 +310,7 @@ void view(GLFWwindow* window,GLint program){
 	glm::mat4 proj(1.0f);//Í¸ÊÓ¾ØÕó
 	glfwGetWindowSize(window, &width, &height);
 	proj = glm::perspective(glm::radians(fov), (float)width / (float)height, 0.1f, 100.0f);
+	//print
 	
 	GLint viewLoc = glGetUniformLocation(program, "view");
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -282,6 +321,7 @@ void view(GLFWwindow* window,GLint program){
 		logger("Info") << "view \n" << v << std::endl;
 		Eigen::Map<Eigen::Matrix<float, 4, 4, Eigen::ColMajor>> p(glm::value_ptr(proj));
 		logger("Info") << "proj \n" << p << std::endl;
+		//
 	}
 	logEnable = 0;
 }

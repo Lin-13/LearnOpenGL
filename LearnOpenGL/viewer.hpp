@@ -1,7 +1,11 @@
-#ifndef VIEW_HPP
-#define VIEW_HPP
+#ifndef VIEWER_HPP
+#define VIEWER_HPP
+#pragma once
+#ifndef GL_INCLUDE
+#define GL_INCLUDE
 #include<glad/glad.h>
 #include<GLFW/glfw3.h>
+#endif
 #include<iostream>
 #include<string>
 #include<vector>
@@ -9,7 +13,13 @@
 #include"camera.hpp"
 namespace GLViewer {
 	// Register Class Window with GLFWwindow*
+	class Window;
 	static std::map<GLFWwindow*, Window*> window_register;
+	void defaultCursorCallback(GLFWwindow* window, double xpos, double ypos);
+	void defaultRollCallback(GLFWwindow* window, double xroll, double yroll);
+	void defaultMouseCallback(GLFWwindow* window, int button, int action, int mods);
+	void defaultKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+	void defaultFramebufferSizeCallback(GLFWwindow* window, int width, int height);
 	class Window {
 	private:
 		GLFWwindow* window;
@@ -18,19 +28,18 @@ namespace GLViewer {
 		GLuint VAO;
 		GLuint EBO;
 		int useEBO;
-		unsigned int vertex_data_length;
+		unsigned int vertex_data_size;
 		std::vector<double> VertexData;
-		//Camera
 		Camera camera;
-		std::string vertexShaderSource = 
-			"#version 330 core"
+		std::string vertexShaderSource =
+			"#version 330 core\n"
 			"layout(location = 0) in vec3 Pos;"
-			//"layout(location = 1) in vec3 color;"
+			"layout(location = 1) in vec3 color;"
 			"uniform mat4 model = mat4("
-				"1.0f, 0.0f, 0.0f, 0.0f,"
-				"0.0f, 1.0f, 0.0f, 0.0f,"
-				"0.0f, 0.0f, 1.0f, 0.0f,"
-				"0.0f, 0.0f, 0.0f, 1.0f"
+			"1.0f, 0.0f, 0.0f, 0.0f,"
+			"0.0f, 1.0f, 0.0f, 0.0f,"
+			"0.0f, 0.0f, 1.0f, 0.0f,"
+			"0.0f, 0.0f, 0.0f, 1.0f"
 			");"
 			"uniform mat4 view = mat4("
 			"1.0f, 0.0f, 0.0f, 0.0f,"
@@ -50,7 +59,7 @@ namespace GLViewer {
 			"VertexColor = vec4(1.0, 1.0, 1.0, 1.0);"
 			"}";
 		std::string fragShaderSource =
-			"#version 330 core"
+			"#version 330 core\n"
 			"in vec4 VertexColor;"
 			"out vec4 FragmentColor;"
 			"uniform vec4 ourColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);"
@@ -58,6 +67,11 @@ namespace GLViewer {
 			"FragmentColor = ourColor;"
 			"}";
 	public:
+		//Camera
+		
+		static void Terminate() {
+			glfwTerminate();
+		}
 		Window(std::string window_name, int width = 800, int height = 600) {
 			window = Initglfw(window_name, width, height);
 			glfwMakeContextCurrent(window);
@@ -65,26 +79,63 @@ namespace GLViewer {
 				std::cerr << "[Error]: " << "GLViewer::Window: Cou not init glad." << std::endl;
 				glfwTerminate();
 			}
+			glViewport(0, 0, width, height);
+			camera.Reset();
+			camera.setProj(45.0f, (float)width / (float)height);
+
 			initDefaultProgram();
-			setDefaultVAO();
+			setDefaultCallback();
 			window_register[window] = this;
 		}
-		void loadVertexData(float* data,unsigned int length) {
-			vertex_data_length = length;
+		void Render() {
+			glEnable(GL_DEPTH_TEST);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+			int width, height;
+			glfwGetWindowSize(window, &width, &height);
+			camera.setProj(camera.getFov(), (float)width / (float)height);
+			updateDefaultProgramUniform("view");
+			updateDefaultProgramUniform("proj");
+			glDrawArrays(GL_TRIANGLES, 0, vertex_data_size);
+			
+			glfwSwapBuffers(window);
+			glfwPollEvents();
+		}
+		int isOpen() {
+			return !glfwWindowShouldClose(window);
+		}
+		int closeWindow() {
+			glfwSetWindowShouldClose(window, true);
+			glfwHideWindow(window);
+		}
+		Camera getCamera() {
+			return camera;
+		}
+		void loadVertexData(float* data, unsigned int size) {
+			vertex_data_size = size;
 			glGenBuffers(1, &VBO);
 			glBindBuffer(GL_ARRAY_BUFFER, VBO);
-			glBufferData(GL_ARRAY_BUFFER, length * sizeof(float), data, GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, size * sizeof(float), data, GL_STATIC_DRAW);
+			std::cout << "[Info]: " << "Send " << size * sizeof(float) << " Bytes data to GPU." << std::endl;
+			setDefaultVAO();
+		}
+		void setCamera(glm::vec3 position, glm::vec3 front = glm::vec3(0.0f,0.0f,-1.0f), float     fov = 45.0f) {
+			camera.setFov(fov);
+			camera.setFrontVec(front);
+			camera.setPosition(position);
 		}
 		friend void defaultMouseCallback(GLFWwindow* window, int button, int action, int mods);
 		friend void defaultCursorCallback(GLFWwindow* window, double xpos, double ypos);
 		friend void defaultRollCallback(GLFWwindow* window, double xroll, double yroll);
-	private:   
+		friend void defaultKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+	private:
 		GLFWwindow* Initglfw(std::string window_name, int width, int height) {
 			glfwInit();
 			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-			GLFWwindow* win = glfwCreateWindow(width, height, "Hello Shader", NULL, NULL);
+			const char* winname = window_name.c_str();
+			GLFWwindow* win = glfwCreateWindow(width, height, winname, NULL, NULL);
 			if (!win) {
 				std::cerr << "[Error]:" << "GLViewer::Window: Glfw init error." << std::endl;
 				glfwTerminate();
@@ -95,7 +146,7 @@ namespace GLViewer {
 		void initDefaultProgram(void) {
 			GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 			const char* vShader = vertexShaderSource.c_str();
-			glShaderSource(vertexShader, 1,&vShader , NULL);
+			glShaderSource(vertexShader, 1, &vShader, NULL);
 			int success;
 			char infolog[512];
 			glCompileShader(vertexShader);
@@ -103,6 +154,7 @@ namespace GLViewer {
 			if (!success) {
 				glGetShaderInfoLog(vertexShader, 512, NULL, infolog);
 				std::cerr << "ERROR: " << "GLViewer::Window::initDefaultProgram::" << "Vertex Shader ERROR." << std::endl;
+				std::cerr << infolog << std::endl;
 			}
 			GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 			const char* fshader = fragShaderSource.c_str();
@@ -111,8 +163,9 @@ namespace GLViewer {
 			glGetShaderiv(fragShader, GL_COMPILE_STATUS, &success);
 			if (!success) {
 				glGetShaderInfoLog(fragShader, 512, NULL, infolog);
-				std::cerr << "ERROR: " << "GLViewer::Window::initDefaultProgram::" 
+				std::cerr << "ERROR: " << "GLViewer::Window::initDefaultProgram::"
 					<< "Fragment Shader ERROR." << std::endl;
+				std::cerr << infolog << std::endl;
 			}
 			program = glCreateProgram();
 			glAttachShader(program, vertexShader);
@@ -123,37 +176,43 @@ namespace GLViewer {
 				glGetProgramInfoLog(program, 512, NULL, infolog);
 				std::cerr << "ERROR: " << "GLViewer::Window::initDefaultProgram::"
 					<< "Program link ERROR." << std::endl;
+				std::cerr << infolog << std::endl;
 			}
 			glUseProgram(program);
 		}
 		void updateDefaultProgramUniform(const std::string uniform = {}) {
-			if (uniform.compare("model")) {
+			if (uniform.compare("model") == 0) {
 				GLuint modelLoc = glGetUniformLocation(program, "model");
 				std::cout << "ERROR at GLViewer::Window::updateDefaultProgramUniform:"
 					<< "can not set model matrix yet" << std::endl;
 			}
-			if (uniform.compare("view")) {
+			if (uniform.compare("view") == 0) {
 				GLuint viewLoc = glGetUniformLocation(program, "view");
 				glUniformMatrix4fv(viewLoc, 1, GL_FALSE, camera.getViewPtr());
 			}
-			if (uniform.compare("proj")) {
-				GLuint projLoc = glGetUniformLocation(program, "proj");
+			if (uniform.compare("proj") == 0) {
+				GLuint projLoc = glGetUniformLocation(program, "projection");
 				glUniformMatrix4fv(projLoc, 1, GL_FALSE, camera.getProjPtr());
 			}
 		}
 		void setDefaultVAO(void) {
 			glGenVertexArrays(1, &VAO);
 			glBindVertexArray(VAO);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3, (void*)0);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 			glEnableVertexAttribArray(0);
 		}
 		void setDefaultCallback() {
+			glfwSetFramebufferSizeCallback(window, defaultFramebufferSizeCallback);
 			glfwSetMouseButtonCallback(window, defaultMouseCallback);
-				GLFWmousebuttonfun;
+			glfwSetCursorPosCallback(window, defaultCursorCallback);
+			glfwSetScrollCallback(window, defaultRollCallback);
+			glfwSetKeyCallback(window, defaultKeyCallback);
 		}
-		
-		
 	};
+	void defaultFramebufferSizeCallback(GLFWwindow* window, int width, int height) {
+		std::cout << "[Info]:" << "Chang viewport to height " << height << " width " << width << std::endl;
+		glViewport(0, 0, width, height);
+	}
 	void defaultCursorCallback(GLFWwindow* window, double xpos, double ypos) {
 		static double lastX, lastY;
 		static int first = 1;
@@ -166,23 +225,20 @@ namespace GLViewer {
 			int width, height;
 			glfwGetWindowSize(window, &width, &height);
 			glfwSetCursorPos(window, width / 2.0, height / 2.0);
-			//logger("Info") << " x pos " << xpos << " , y pos " << ypos << std::endl;
 			lastX = width / 2.0;
 			lastY = height / 2.0;
 			first = 0;
-			//logger("Info") << "first" << std::endl;
-			//logger("Info") << "Front: " << cameraFront.x << " " << cameraFront.y << " " << cameraFront.z << std::endl;
-
 			return;
 		}
-		//logger("Info") << " x pos " << xpos << " , y pos " << ypos << std::endl;
-		double xoffset = xpos - lastX;
-		double yoffset = ypos - lastY;
+		float xoffset = xpos - lastX;
+		float yoffset = ypos - lastY;
 		lastX = xpos;
 		lastY = ypos;
-		//logger("Info") << "xoffset: " << xoffset << " yoffset: " << yoffset << std::endl;
-		//logger("Info") << "lastX: " << lastX << " lastX: " << lastY << std::endl;
-		double sens = 0.05;
+		//std::cout << "[Info]: Window::defaultCursorCallback" 
+		//	<< "xoffset: " << xoffset << " yoffset: " << yoffset << std::endl;
+		//std::cout<<"[Info]: Window::defaultCursorCallback" 
+		//	<< "lastX: " << lastX << " lastX: " << lastY << std::endl;
+		float sens = 0.05;
 		xoffset *= sens;
 		yoffset *= sens;
 		Camera& camera = window_register[window]->camera;
@@ -192,14 +248,8 @@ namespace GLViewer {
 			camera.setPitch(89.0f);
 		if (camera.getPitch() < -89.0f)
 			camera.setPitch(-89.0f);
-		glm::vec3 front;
-		front.x = glm::cos(glm::radians(camera.getPitch())) * glm::cos(glm::radians(camera.getYaw()));
-		front.y = glm::sin(glm::radians(camera.getPitch()));
-		front.z = glm::cos(glm::radians(camera.getPitch())) * glm::sin(glm::radians(camera.getYaw()));
-		camera.setFrontVec(glm::normalize(front));
-		//logger("Info") << "xoffset: " << xoffset << " yoffset: " << yoffset << std::endl;
-		//logger("Info") << "pitch: " << pitch << " yaw: " << yaw << std::endl;
-		//logger("Info") << "Front: " << front.x << " " << front.y << " " << front.z << std::endl;
+		//std::cout<<"[Info]: <<Window::defaultCursorCallback>> " 
+		//	<< "pitch: " << camera.getPitch() << " yaw: " << camera.getYaw() << std::endl;
 		return;
 	}
 	void defaultRollCallback(GLFWwindow* window, double xroll, double yroll) {
@@ -208,9 +258,7 @@ namespace GLViewer {
 			return;
 		}
 		Camera& camera = window_register[window]->camera;
-		camera.setFov(camera.getFov() + yroll);
-		//logger("Info") << " x roll " << xroll << " , y roll " << yroll << std::endl;
-		//logger("Info") << "Fov:" << fov << std::endl;
+		camera.setFov(camera.getFov() + (float)yroll);
 	}
 	void defaultMouseCallback(GLFWwindow* window, int button, int action, int mods) {
 		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
@@ -228,7 +276,39 @@ namespace GLViewer {
 		}
 		if (button == GLFW_MOUSE_BUTTON_RIGHT) {
 		}
-		//logger("Info") << "Button: "<<button << " action: " << action << " mods: " << mods << std::endl;
+	}
+	void defaultKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+		
+		/*std::cout<<"Info: defaultKeyCallback:\n" 
+			<< "key: " << key << " scancode:" << scancode 
+		     << " action: " << action << " mods:" << mods << std::endl;
+		*/
+		const float cameraSpeed = 0.05f;
+		Camera& camera = window_register[window]->camera;
+		if (action == 1 || action == 2) {
+			if (key == GLFW_KEY_ESCAPE) {
+				glfwSetWindowShouldClose(window, true);
+			}
+			if (key == GLFW_KEY_W) {
+				camera.setPosition(camera.getPosition() + cameraSpeed * camera.getFrontVec());
+			}
+			if (key == GLFW_KEY_S) {
+				camera.setPosition(camera.getPosition() - cameraSpeed * camera.getFrontVec());
+			}
+			if (key == GLFW_KEY_A) {
+				camera.setPosition(camera.getPosition() -
+					cameraSpeed * glm::normalize(glm::cross(camera.getFrontVec(), camera.getUpVec())));
+				glm::vec3 Right = glm::normalize(glm::cross(camera.getFrontVec(), camera.getUpVec()));
+				std::cout << "Right Vec:" << Right.x << " " << Right.y << " " << Right.z << std::endl;
+			}
+			if (key == GLFW_KEY_D) {
+				camera.setPosition(camera.getPosition() +
+					cameraSpeed * glm::normalize(glm::cross(camera.getFrontVec(), camera.getUpVec())));
+				glm::vec3 Right = glm::normalize(glm::cross(camera.getFrontVec(), camera.getUpVec()));
+				std::cout << "Right Vec:" << Right.x << " " << Right.y << " " << Right.z << std::endl;
+			}
+		}
+
 	}
 }
 #endif

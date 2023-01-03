@@ -156,14 +156,15 @@
     <ClCompile Include="logger.hpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="shader.cpp" />
+    <ClCompile Include="test.cpp" />
     <ClCompile Include="utils.cpp" />
-    <ClCompile Include="viewer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.hpp" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="test_data.hpp" />
     <ClInclude Include="utils.hpp" />
+    <ClInclude Include="viewer.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="fragmentshader.txt" />
