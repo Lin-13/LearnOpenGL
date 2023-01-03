@@ -7,7 +7,8 @@
 #include<glm/gtc/type_ptr.hpp>
 #include<iostream>
 namespace GLViewer {
-	
+	class Camera;
+	static std::ostream& operator<<(std::ostream& os, Camera& camera);
 	/*
 	Brief:
 	* 该类采用坐标系为右手系，y轴向上，z轴向后.
@@ -117,8 +118,10 @@ namespace GLViewer {
 			return Front;
 		}
 		glm::vec3 getUpVec() {
-			glm::vec4 up = viewMat * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-			return glm::normalize(glm::vec3(up.x, up.y, up.z));
+			//glm::vec4 up = viewMat * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+			////std::cout << "Camera::getUpVec:\nYaw" << Yaw << " " << "Pitch " << Pitch << std::endl;
+			//return glm::normalize(glm::vec3(up.x, up.y, up.z));
+			return Up;
 		}
 		glm::mat4 getViewMatrix() {
 			return viewMat;
@@ -143,9 +146,11 @@ namespace GLViewer {
 			trans = glm::rotate(trans, glm::radians((float)Pitch), glm::vec3(1.0f, 0.0f, 0.0f));
 			glm::vec4 front = trans * glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
 			glm::vec4 up = trans * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-			//std::cout << "Front:" << front.x << " " << front.y << " " << front.z << std::endl;
 			Front = glm::normalize(glm::vec3(front.x, front.y, front.z));
 			Up = glm::normalize(glm::vec3(up.x, up.y, up.z));
+			//std::cout << "Camera::updateFromEuler:\nYaw " << Yaw << " " << "Pitch " << Pitch << std::endl;
+			//std::cout << "Front:" << Front.x << " " << Front.y << " " << Front.z << std::endl;
+			//std::cout << "Up:" << Up.x << " " << Up.y << " " << Up.z << std::endl;
 			viewMat = trans;
 			viewMat = glm::lookAt(Position, Position + Front, Up);
 
@@ -176,7 +181,7 @@ namespace GLViewer {
 			}
 		}
 	};
-	static std::ostream& operator<<(std::ostream& os,  GLViewer::Camera& camera) {
+	static std::ostream& operator<<(std::ostream& os, Camera& camera) {
 		os << "Pitch: " << camera.getPitch() << ",Yaw: " << camera.getYaw() << std::endl;
 		glm::vec3 front = camera.getFrontVec();
 		glm::vec3 up = camera.getUpVec();

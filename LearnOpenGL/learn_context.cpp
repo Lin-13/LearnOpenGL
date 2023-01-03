@@ -80,6 +80,9 @@ void mouse_callback(GLFWwindow* window, int button,int action,int mods);
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void InputProcess(GLFWwindow* window, GLuint program);
 void view(GLFWwindow* window, GLint program);
+
+//test
+void testCamera();
 //#define MAIN
 #ifdef MAIN
 int main() {
@@ -98,10 +101,7 @@ int learn_context() {
 		return 0;
 	}
 	//Camera
-	GLViewer::Camera camera(glm::vec3(1.0f, 1.0f, 1.0f));
-	GLViewer::Camera c2(glm::vec3(1.0f, 1.0f, 1.0f), 45.0f, 45.0f);
-	GLViewer::Camera c(c2);
-	c.getFrontVec();
+	//testCamera();
 	glfwMakeContextCurrent(window);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		logger("Error") << "Cou not init glad" << std::endl;
@@ -398,4 +398,17 @@ void mouse_callback(GLFWwindow* window, int button, int action, int mods) {
 	if (button == GLFW_MOUSE_BUTTON_RIGHT) {
 	}
 	//logger("Info") << "Button: "<<button << " action: " << action << " mods: " << mods << std::endl;
+}
+void testCamera() {
+	GLViewer::Camera camera(glm::vec3(1.0f, 1.0f, 1.0f));
+	GLViewer::Camera c2(glm::vec3(1.0f, 1.0f, 1.0f), 45.0f, 45.0f);
+	GLViewer::Camera c(c2);
+	std::cout << "[Info]:" << c;
+	glm::mat4 viewMat = c.getViewMatrix();
+	Eigen::Map<Eigen::Matrix4f> v(glm::value_ptr(viewMat));
+	std::cout << "View:\n" << v << std::endl;
+	c = camera;
+	std::cout << "[Info]:" << c;
+	viewMat = c.getViewMatrix();
+	std::cout << "View:\n" << v << std::endl;
 }

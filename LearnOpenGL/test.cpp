@@ -14,7 +14,7 @@ static float vertices[] = {
 };
 int learn_context();
 int main() {
-	//learn_context();
+	learn_context();
 	GLViewer::Window window("hello");
 	window.loadVertexData(vertices, sizeof(vertices) / sizeof(float));
 	window.setCamera(glm::vec3(0.0f, 0.0f, 3.0f));

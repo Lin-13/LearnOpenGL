@@ -298,14 +298,14 @@ namespace GLViewer {
 			if (key == GLFW_KEY_A) {
 				camera.setPosition(camera.getPosition() -
 					cameraSpeed * glm::normalize(glm::cross(camera.getFrontVec(), camera.getUpVec())));
-				glm::vec3 Right = glm::normalize(glm::cross(camera.getFrontVec(), camera.getUpVec()));
-				std::cout << "Right Vec:" << Right.x << " " << Right.y << " " << Right.z << std::endl;
+				//glm::vec3 Right = glm::normalize(glm::cross(camera.getFrontVec(), camera.getUpVec()));
+				//std::cout << "Right Vec:" << Right.x << " " << Right.y << " " << Right.z << std::endl;
 			}
 			if (key == GLFW_KEY_D) {
 				camera.setPosition(camera.getPosition() +
 					cameraSpeed * glm::normalize(glm::cross(camera.getFrontVec(), camera.getUpVec())));
-				glm::vec3 Right = glm::normalize(glm::cross(camera.getFrontVec(), camera.getUpVec()));
-				std::cout << "Right Vec:" << Right.x << " " << Right.y << " " << Right.z << std::endl;
+				//glm::vec3 Right = glm::normalize(glm::cross(camera.getFrontVec(), camera.getUpVec()));
+				//std::cout << "Right Vec:" << Right.x << " " << Right.y << " " << Right.z << std::endl;
 			}
 		}
 
