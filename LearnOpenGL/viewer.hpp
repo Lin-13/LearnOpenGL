@@ -87,6 +87,12 @@ namespace GLViewer {
 			setDefaultCallback();
 			window_register[window] = this;
 		}
+		~Window() {
+			window_register.erase(window);
+			glDeleteBuffers(1, &VBO);
+			glDeleteBuffers(1, &EBO);
+			glDeleteBuffers(1, &VAO);
+		}
 		void Render() {
 			glEnable(GL_DEPTH_TEST);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
